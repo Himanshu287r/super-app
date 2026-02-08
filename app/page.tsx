@@ -145,10 +145,7 @@ export default function Home() {
         {selectedChatId && selectedChat ? (
           <ChatWindow chat={selectedChat} onSendMessage={(text) => handleSendMessage(selectedChatId, text)} />
         ) : (
-          <EmptyState
-            onCreateGroup={() => setShowCreateGroup(true)}
-            onTalkToAI={() => setShowTalkToAI(true)}
-          />
+          <EmptyState />
         )}
       </main>
 

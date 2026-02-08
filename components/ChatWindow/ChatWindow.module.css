@@ -1,0 +1,119 @@
+.container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: var(--background);
+}
+
+.header {
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.headerLeft {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.title {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+}
+
+.statusDot {
+    width: 8px;
+    height: 8px;
+    background-color: #10b981;
+    border-radius: 50%;
+}
+
+.headerRight {
+    display: flex;
+    gap: 1.5rem;
+    color: var(--primary);
+}
+
+.headerIcon {
+    cursor: pointer;
+}
+
+.messagesArea {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.messageRow {
+    display: flex;
+    gap: 1rem;
+}
+
+.messageRow.own {
+    flex-direction: row-reverse;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.messageContent {
+    max-width: 60%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.bubble {
+    padding: 0.75rem 1.25rem;
+    border-radius: 18px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    position: relative;
+}
+
+.own .bubble {
+    background-color: var(--primary);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.other .bubble {
+    background-color: #f3f4f6;
+    color: var(--foreground);
+    border-top-left-radius: 4px;
+}
+
+.messageTime {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    margin-top: 2px;
+}
+
+.own .messageTime {
+    text-align: right;
+}

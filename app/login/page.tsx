@@ -23,6 +23,7 @@ export default function LoginPage() {
     } = useAuth();
 
     const [view, setView] = useState<AuthView>('selection');
+    const [autoGoogleAttempted, setAutoGoogleAttempted] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [displayName, setDisplayName] = useState('');
@@ -37,6 +38,15 @@ export default function LoginPage() {
             router.push('/');
         }
     }, [user, loading, router]);
+
+    // Automatically trigger Google sign-in when the login page opens
+    // This will try a popup first; if blocked, AuthContext falls back to redirect.
+    useEffect(() => {
+        if (!loading && !user && view === 'selection' && !isSubmitting && !autoGoogleAttempted) {
+            setAutoGoogleAttempted(true);
+            void handleGoogleLogin();
+        }
+    }, [loading, user, view, isSubmitting, autoGoogleAttempted]);
 
     const handleGoogleLogin = async () => {
         setIsSubmitting(true);

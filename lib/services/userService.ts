@@ -36,6 +36,7 @@ export async function createOrUpdateUser(firebaseUser: FirebaseUser): Promise<vo
         await setDoc(userRef, {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
+            emailLookup: firebaseUser.email?.toLowerCase() || null,
             displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
             photoURL: firebaseUser.photoURL,
             phoneNumber: firebaseUser.phoneNumber,
@@ -49,6 +50,8 @@ export async function createOrUpdateUser(firebaseUser: FirebaseUser): Promise<vo
         await updateDoc(userRef, {
             isOnline: true,
             lastSeen: serverTimestamp(),
+            // Ensure emailLookup exists for older accounts
+            emailLookup: firebaseUser.email?.toLowerCase() || null,
             // Update display name / photo if changed from auth provider
             ...(firebaseUser.displayName && { displayName: firebaseUser.displayName }),
             ...(firebaseUser.photoURL && { photoURL: firebaseUser.photoURL }),
@@ -77,11 +80,26 @@ export async function getUser(userId: string): Promise<UserProfile | null> {
     } as UserProfile;
 }
 
-// Search users by email (exact match)
+// Search users by email (case-insensitive)
 export async function searchUserByEmail(email: string): Promise<UserProfile | null> {
     const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('email', '==', email.toLowerCase().trim()));
-    const snapshot = await getDocs(q);
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Try emailLookup field first (lowercase), then fallback to email field
+    let q = query(usersRef, where('emailLookup', '==', normalizedEmail));
+    let snapshot = await getDocs(q);
+
+    // Fallback: search by original email field (for users who signed up before the fix)
+    if (snapshot.empty) {
+        q = query(usersRef, where('email', '==', normalizedEmail));
+        snapshot = await getDocs(q);
+    }
+
+    // Final fallback: try exact match as typed (original casing)
+    if (snapshot.empty) {
+        q = query(usersRef, where('email', '==', email.trim()));
+        snapshot = await getDocs(q);
+    }
 
     if (snapshot.empty) return null;
 

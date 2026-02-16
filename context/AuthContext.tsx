@@ -4,7 +4,8 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import {
     User,
     onAuthStateChanged,
-    signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signOut,
@@ -39,6 +40,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [error, setError] = useState<string | null>(null);
     const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
+    // Handle redirect result from Google sign-in
+    useEffect(() => {
+        getRedirectResult(auth)
+            .then(async (result) => {
+                if (result?.user) {
+                    await createOrUpdateUser(result.user);
+                }
+            })
+            .catch((err) => {
+                const message = err instanceof Error ? err.message : 'Failed to sign in with Google';
+                if (!message.includes('null')) {
+                    setError(message);
+                }
+            });
+    }, []);
+
     // Listen for auth state changes
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -61,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             setError(null);
             setLoading(true);
-            await signInWithPopup(auth, googleProvider);
+            await signInWithRedirect(auth, googleProvider);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : 'Failed to sign in with Google';
             setError(message);

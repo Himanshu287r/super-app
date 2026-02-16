@@ -5,7 +5,6 @@ import {
     getDocs,
     query,
     where,
-    orderBy,
     onSnapshot,
     serverTimestamp,
     updateDoc,
@@ -107,10 +106,11 @@ export function subscribeToUserChats(
     callback: (chats: ChatDoc[]) => void
 ): Unsubscribe {
     const chatsRef = collection(db, 'chats');
+    // Only filter by participants — sorting is done client-side
+    // This avoids needing a Firestore composite index
     const q = query(
         chatsRef,
-        where('participants', 'array-contains', userId),
-        orderBy('createdAt', 'desc')
+        where('participants', 'array-contains', userId)
     );
 
     return onSnapshot(q, (snapshot) => {
@@ -143,6 +143,8 @@ export function subscribeToUserChats(
         });
 
         callback(chats);
+    }, (error) => {
+        console.error('Error subscribing to chats:', error);
     });
 }
 

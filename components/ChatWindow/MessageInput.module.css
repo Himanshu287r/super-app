@@ -9,7 +9,7 @@
 
 .inputWrapper {
     flex: 1;
-    background-color: #f3f4f6;
+    background-color: var(--muted);
     border-radius: 24px;
     padding: 0.75rem 1rem;
     display: flex;
@@ -23,6 +23,11 @@
     flex: 1;
     outline: none;
     font-size: 0.95rem;
+    color: var(--foreground);
+}
+
+.textInput::placeholder {
+    color: var(--muted-foreground);
 }
 
 .iconButton {
@@ -39,7 +44,7 @@
 }
 
 .iconButton:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--border-color);
     color: var(--primary);
 }
 

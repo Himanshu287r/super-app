@@ -87,18 +87,18 @@
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background-color: #e2e8f0;
+    background-color: var(--muted);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
     font-size: 1.1rem;
-    color: #64748b;
+    color: var(--muted-foreground);
     flex-shrink: 0;
 }
 
 .groupAvatar {
-    background-color: #f0f9ff;
+    background-color: var(--muted);
     color: #0ea5e9;
 }
 

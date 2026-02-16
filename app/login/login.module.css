@@ -9,20 +9,16 @@
 
 .card {
     width: 100%;
-    max-width: 400px;
+    max-width: 420px;
     padding: 2.5rem;
     background-color: var(--background);
-    /* Use theme background */
     border-radius: 1rem;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     text-align: center;
     border: 1px solid var(--border-color);
     color: var(--foreground);
-    /* Ensure text is visible against background */
+    position: relative;
 }
-
-/* Explicit light/dark overrides for clarity if needed, 
-   but relying on vars is better */
 
 .title {
     font-size: 1.75rem;
@@ -49,7 +45,6 @@
     border-radius: 0.5rem;
     border: 1px solid var(--border-color);
     background-color: var(--background);
-    /* Button bg matches card or slightly different */
     color: var(--foreground);
     font-weight: 500;
     cursor: pointer;
@@ -63,8 +58,11 @@
 
 .button:hover {
     background-color: var(--sidebar-bg);
-    /* Use a slight tint on hover */
     border-color: var(--muted);
+}
+
+.button:disabled {
+    cursor: not-allowed;
 }
 
 .primaryButton {
@@ -76,7 +74,6 @@
 .primaryButton:hover {
     filter: brightness(1.1);
     background-color: var(--primary);
-    /* Keep base, filter handles variations */
 }
 
 .divider {
@@ -144,4 +141,108 @@
 .backButton:hover {
     text-decoration: underline;
     color: var(--foreground);
+}
+
+/* New styles for extended login */
+
+.backButtonTop {
+    position: absolute;
+    top: 1.25rem;
+    left: 1.25rem;
+    background: none;
+    border: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.backButtonTop:hover {
+    color: var(--foreground);
+    background: var(--muted);
+}
+
+.passwordWrapper {
+    position: relative;
+}
+
+.eyeButton {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.eyeButton:hover {
+    color: var(--foreground);
+}
+
+.errorMessage {
+    background-color: #fef2f2;
+    color: #dc2626;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+    text-align: left;
+    border: 1px solid #fee2e2;
+}
+
+[data-theme='dark'] .errorMessage {
+    background-color: rgba(220, 38, 38, 0.1);
+    border-color: rgba(220, 38, 38, 0.2);
+}
+
+.switchText {
+    margin-top: 1.5rem;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+}
+
+.linkButton {
+    background: none;
+    border: none;
+    color: var(--primary);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.linkButton:hover {
+    text-decoration: underline;
+}
+
+.loadingSpinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 2rem 0;
+    color: var(--muted-foreground);
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
 }

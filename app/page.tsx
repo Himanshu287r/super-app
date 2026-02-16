@@ -9,131 +9,174 @@ import ChatWindow from "@/components/ChatWindow/ChatWindow";
 import CreateGroupModal from "@/components/Modals/CreateGroupModal";
 import AICharacterModal from "@/components/Modals/AICharacterModal";
 import AddContactModal from "@/components/Modals/AddContactModal";
-import { INITIAL_CHATS, USERS, Chat, User } from '@/data/mockData';
+import { useAuth } from '@/context/AuthContext';
+import { ChatDoc, subscribeToUserChats, createDirectChat, createGroupChat } from '@/lib/services/chatService';
+import { sendMessage } from '@/lib/services/messageService';
+import { searchUserByEmail, UserProfile, subscribeToUsers } from '@/lib/services/userService';
+import { setOnlineStatus } from '@/lib/services/userService';
 
 export default function Home() {
   const router = useRouter();
-  const [chats, setChats] = useState<Chat[]>(INITIAL_CHATS);
+  const { user, loading, logout } = useAuth();
+
+  const [chats, setChats] = useState<ChatDoc[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showTalkToAI, setShowTalkToAI] = useState(false);
   const [showAddContact, setShowAddContact] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [usersMap, setUsersMap] = useState<Map<string, UserProfile>>(new Map());
 
+  // Redirect if not logged in
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
-    if (!isLoggedIn) {
+    if (!loading && !user) {
       router.push('/login');
-    } else {
-      setIsLoading(false);
     }
-  }, [router]);
+  }, [user, loading, router]);
 
-  const handleCreateGroup = (name: string, participantIds: string[]) => {
-    const participants = USERS.filter(u => participantIds.includes(u.id));
-    const newChat: Chat = {
-      id: Date.now().toString(),
-      isGroup: true,
-      groupName: name,
-      participants: participants,
-      messages: [],
-      unreadCount: 0
+  // Set online status and handle browser close
+  useEffect(() => {
+    if (!user) return;
+
+    setOnlineStatus(user.uid, true);
+
+    const handleBeforeUnload = () => {
+      setOnlineStatus(user.uid, false);
     };
-    setChats(prev => [newChat, ...prev]);
-    setSelectedChatId(newChat.id);
-    setShowCreateGroup(false);
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      setOnlineStatus(user.uid, false);
+    };
+  }, [user]);
+
+  // Subscribe to chats
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = subscribeToUserChats(user.uid, (newChats) => {
+      setChats(newChats);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Subscribe to all participant users for real-time presence
+  useEffect(() => {
+    if (!user || chats.length === 0) return;
+
+    // Collect all unique user IDs from all chats
+    const allUserIds = new Set<string>();
+    chats.forEach((chat) => {
+      chat.participants.forEach((pid) => {
+        if (pid !== user.uid) {
+          allUserIds.add(pid);
+        }
+      });
+    });
+
+    if (allUserIds.size === 0) return;
+
+    const unsubscribe = subscribeToUsers(Array.from(allUserIds), (users) => {
+      setUsersMap(new Map(users));
+    });
+
+    return () => unsubscribe();
+  }, [user, chats]);
+
+  const handleCreateGroup = async (name: string, participantIds: string[]) => {
+    if (!user) return;
+    try {
+      const chatId = await createGroupChat(name, participantIds, user.uid);
+      setSelectedChatId(chatId);
+      setShowCreateGroup(false);
+    } catch (err) {
+      console.error('Failed to create group:', err);
+    }
   };
 
   const handleCreateAIChat = (aiId: string) => {
-    const aiUser = USERS.find(u => u.id === aiId);
-    if (!aiUser) return;
-
-    // Check if chat already exists
-    const existing = chats.find(c => !c.isGroup && c.participants[0].id === aiId);
-    if (existing) {
-      setSelectedChatId(existing.id);
-      setShowTalkToAI(false);
-      return;
-    }
-
-    const newChat: Chat = {
-      id: Date.now().toString(),
-      participants: [aiUser],
-      messages: [],
-      unreadCount: 0
-    };
-    setChats(prev => [newChat, ...prev]);
-    setSelectedChatId(newChat.id);
+    // AI chat remains local for now — can be extended with an AI API later
     setShowTalkToAI(false);
-  }
+    alert('AI chat feature coming soon! Connect an AI API to enable this.');
+  };
 
-  const handleAddContact = (email: string) => {
-    const newUser: User = {
-      id: Date.now().toString(),
-      name: email.split('@')[0],
-      isOnline: false,
-      avatar: undefined
-    };
+  const handleAddContact = async (email: string) => {
+    if (!user) return;
 
-    const newChat: Chat = {
-      id: Date.now().toString(),
-      participants: [newUser],
-      messages: [],
-      unreadCount: 0
-    };
-    setChats(prev => [newChat, ...prev]);
-    setSelectedChatId(newChat.id);
-    setShowAddContact(false);
-  }
-
-  const handleSendMessage = (chatId: string, text: string) => {
-    setChats(prevChats => prevChats.map(chat => {
-      if (chat.id !== chatId) return chat;
-
-      const newMessage = {
-        id: Date.now().toString(),
-        senderId: 'me',
-        text: text,
-        timestamp: new Date().toISOString(),
-        isRead: true
-      };
-
-      // AI Logic
-      const aiParticipant = chat.participants.find(p => p.isAI);
-      if (aiParticipant) {
-        setTimeout(() => {
-          setChats(currentChats => currentChats.map(c => {
-            if (c.id !== chatId) return c;
-            return {
-              ...c,
-              messages: [...c.messages, {
-                id: (Date.now() + 1).toString(),
-                senderId: aiParticipant.id,
-                text: `[AI ${aiParticipant.name}]: ${text}`, // Echo for now
-                timestamp: new Date().toISOString(),
-                isRead: true
-              }]
-            }
-          }))
-        }, 1000);
+    try {
+      const foundUser = await searchUserByEmail(email);
+      if (!foundUser) {
+        alert('No user found with that email. They need to sign up first!');
+        return;
       }
 
-      return {
-        ...chat,
-        messages: [...chat.messages, newMessage]
-      };
-    }));
-  }
+      if (foundUser.uid === user.uid) {
+        alert("That's your own email!");
+        return;
+      }
 
-  if (isLoading) return null;
+      const chatId = await createDirectChat(user.uid, foundUser.uid);
+      setSelectedChatId(chatId);
+      setShowAddContact(false);
+    } catch (err) {
+      console.error('Failed to add contact:', err);
+      alert('Something went wrong. Please try again.');
+    }
+  };
+
+  const handleSendMessage = async (chatId: string, text: string) => {
+    if (!user) return;
+    try {
+      await sendMessage(chatId, user.uid, text);
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (user) {
+      await setOnlineStatus(user.uid, false);
+    }
+    await logout();
+  };
+
+  if (loading || !user) {
+    return (
+      <div style={{
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--background)',
+        color: 'var(--foreground)',
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid var(--border-color)',
+            borderTop: '3px solid var(--primary)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 1rem',
+          }} />
+          <p style={{ color: 'var(--muted-foreground)' }}>Loading...</p>
+          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
 
   const selectedChat = chats.find(c => c.id === selectedChatId);
 
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
-      <SidebarNav />
+      <SidebarNav user={user} onLogout={handleLogout} />
       <ChatList
         chats={chats}
+        currentUserId={user.uid}
+        usersMap={usersMap}
         onSelectChat={setSelectedChatId}
         selectedChatId={selectedChatId}
         onAddContact={() => setShowAddContact(true)}
@@ -143,7 +186,12 @@ export default function Home() {
 
       <main style={{ flex: 1, display: 'flex' }}>
         {selectedChatId && selectedChat ? (
-          <ChatWindow chat={selectedChat} onSendMessage={(text) => handleSendMessage(selectedChatId, text)} />
+          <ChatWindow
+            chat={selectedChat}
+            currentUserId={user.uid}
+            usersMap={usersMap}
+            onSendMessage={(text) => handleSendMessage(selectedChatId, text)}
+          />
         ) : (
           <EmptyState />
         )}
@@ -153,6 +201,8 @@ export default function Home() {
         isOpen={showCreateGroup}
         onClose={() => setShowCreateGroup(false)}
         onCreate={handleCreateGroup}
+        currentUserId={user.uid}
+        usersMap={usersMap}
       />
       <AICharacterModal
         isOpen={showTalkToAI}

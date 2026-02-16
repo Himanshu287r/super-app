@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-import { Search, MoreVertical, Plus, Users, Bot, UserPlus, Bookmark, X } from 'lucide-react';
+import { Search, Plus, Users, Bot, UserPlus, Bookmark } from 'lucide-react';
 import styles from './ChatList.module.css';
-import { Chat } from '@/data/mockData';
+import { ChatDoc } from '@/lib/services/chatService';
+import { UserProfile } from '@/lib/services/userService';
 
 interface ChatListProps {
-    chats: Chat[];
+    chats: ChatDoc[];
+    currentUserId: string;
+    usersMap: Map<string, UserProfile>;
     onSelectChat: (chatId: string) => void;
     selectedChatId: string | null;
     onAddContact: () => void;
@@ -14,8 +17,18 @@ interface ChatListProps {
     onTalkToAI: () => void;
 }
 
-export default function ChatList({ chats, onSelectChat, selectedChatId, onAddContact, onCreateGroup, onTalkToAI }: ChatListProps) {
+export default function ChatList({
+    chats,
+    currentUserId,
+    usersMap,
+    onSelectChat,
+    selectedChatId,
+    onAddContact,
+    onCreateGroup,
+    onTalkToAI,
+}: ChatListProps) {
     const [showMenu, setShowMenu] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -30,42 +43,69 @@ export default function ChatList({ chats, onSelectChat, selectedChatId, onAddCon
         };
     }, [menuRef]);
 
-    const formatTime = (dateString: string) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
+    const formatTime = (date: Date | null) => {
+        if (!date) return '';
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
-    const getChatName = (chat: Chat) => {
-        if (chat.participants[0].id === 'me') return 'Saved Messages';
-        if (chat.isGroup) return chat.groupName;
-        return chat.participants[0].name;
+    // Get the "other" user in a direct chat
+    const getOtherUser = (chat: ChatDoc): UserProfile | null => {
+        const otherId = chat.participants.find(pid => pid !== currentUserId);
+        if (!otherId) return null;
+        return usersMap.get(otherId) || null;
     };
 
-    const getChatAvatar = (chat: Chat) => {
-        if (chat.participants[0].id === 'me') {
-            return <Bookmark size={20} color="white" />;
-        }
+    const getChatName = (chat: ChatDoc): string => {
+        if (chat.isGroup) return chat.groupName || 'Group';
+        const otherUser = getOtherUser(chat);
+        return otherUser?.displayName || 'Unknown User';
+    };
+
+    const getChatAvatar = (chat: ChatDoc): React.ReactNode => {
         if (chat.isGroup) {
             return chat.groupName?.substring(0, 2).toUpperCase() || 'GR';
         }
-        return chat.participants[0].avatar || chat.participants[0].name.substring(0, 1).toUpperCase();
+        const otherUser = getOtherUser(chat);
+        if (otherUser?.photoURL) {
+            return (
+                <img
+                    src={otherUser.photoURL}
+                    alt={otherUser.displayName}
+                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                />
+            );
+        }
+        return otherUser?.displayName?.substring(0, 1).toUpperCase() || '?';
     };
 
-    const isOnline = (chat: Chat) => {
-        if (chat.isGroup || chat.participants[0].id === 'me') return false;
-        return chat.participants[0].isOnline;
-    }
+    const isOnline = (chat: ChatDoc): boolean => {
+        if (chat.isGroup) return false;
+        const otherUser = getOtherUser(chat);
+        return otherUser?.isOnline || false;
+    };
 
-    const getLastMessage = (chat: Chat) => {
-        if (chat.messages.length === 0) return 'No messages yet';
-        return chat.messages[chat.messages.length - 1].text;
-    }
+    const getLastMessage = (chat: ChatDoc): string => {
+        if (!chat.lastMessage) return 'No messages yet';
+        const isOwn = chat.lastMessage.senderId === currentUserId;
+        const prefix = isOwn ? 'You: ' : '';
+        return prefix + chat.lastMessage.text;
+    };
 
-    const getLastTime = (chat: Chat) => {
-        if (chat.messages.length === 0) return '';
-        return chat.messages[chat.messages.length - 1].timestamp;
-    }
+    const getLastTime = (chat: ChatDoc): Date | null => {
+        return chat.lastMessage?.timestamp || null;
+    };
+
+    const getUnreadCount = (chat: ChatDoc): number => {
+        return chat.unreadCount[currentUserId] || 0;
+    };
+
+    // Filter chats by search query
+    const filteredChats = searchQuery
+        ? chats.filter(chat => {
+            const name = getChatName(chat);
+            return name.toLowerCase().includes(searchQuery.toLowerCase());
+        })
+        : chats;
 
     return (
         <div className={styles.container}>
@@ -89,7 +129,7 @@ export default function ChatList({ chats, onSelectChat, selectedChatId, onAddCon
                                 <UserPlus size={18} />
                                 <div>
                                     <div style={{ fontWeight: 500 }}>New Chat</div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>Add contact by email</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>Search by email</div>
                                 </div>
                             </button>
 
@@ -120,12 +160,6 @@ export default function ChatList({ chats, onSelectChat, selectedChatId, onAddCon
                             </button>
                         </div>
                     )}
-
-                    {/* <button style={{background:'none', border:'none', cursor: 'pointer', color: 'var(--muted-foreground)'}}>
-                 <MoreVertical size={20} />
-            </button> 
-            Removed redundant menu
-            */}
                 </div>
             </div>
 
@@ -134,44 +168,60 @@ export default function ChatList({ chats, onSelectChat, selectedChatId, onAddCon
                     <Search size={18} color="#9ca3af" />
                     <input
                         type="text"
-                        placeholder="Search messages"
+                        placeholder="Search chats"
                         className={styles.searchInput}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
             </div>
 
             <div className={styles.chatList}>
-                {chats.map((chat) => (
-                    <div
-                        key={chat.id}
-                        className={`${styles.chatItem} ${selectedChatId === chat.id ? styles.active : ''}`}
-                        onClick={() => onSelectChat(chat.id)}
-                    >
-                        <div className={styles.avatarWrapper}>
-                            <div
-                                className={`${styles.avatar} ${chat.isGroup ? styles.groupAvatar : ''}`}
-                                style={chat.participants[0].id === 'me' ? { backgroundColor: '#3b82f6' } : {}}
-                            >
-                                {getChatAvatar(chat)}
-                            </div>
-                            {isOnline(chat) && <div className={styles.onlineBadge} />}
-                        </div>
-
-                        <div className={styles.chatContent}>
-                            <div className={styles.topRow}>
-                                <span className={styles.name}>{getChatName(chat)}</span>
-                                <span className={styles.time} suppressHydrationWarning>{formatTime(getLastTime(chat))}</span>
-                            </div>
-
-                            <div className={styles.bottomRow}>
-                                <span className={styles.lastMessage}>{getLastMessage(chat)}</span>
-                                {chat.unreadCount > 0 && (
-                                    <div className={styles.unreadBadge}>{chat.unreadCount}</div>
-                                )}
-                            </div>
-                        </div>
+                {filteredChats.length === 0 && (
+                    <div style={{
+                        padding: '2rem',
+                        textAlign: 'center',
+                        color: 'var(--muted-foreground)',
+                        fontSize: '0.9rem',
+                    }}>
+                        {searchQuery ? 'No chats found' : 'No chats yet. Start a new conversation!'}
                     </div>
-                ))}
+                )}
+                {filteredChats.map((chat) => {
+                    const unread = getUnreadCount(chat);
+                    return (
+                        <div
+                            key={chat.id}
+                            className={`${styles.chatItem} ${selectedChatId === chat.id ? styles.active : ''}`}
+                            onClick={() => onSelectChat(chat.id)}
+                        >
+                            <div className={styles.avatarWrapper}>
+                                <div
+                                    className={`${styles.avatar} ${chat.isGroup ? styles.groupAvatar : ''}`}
+                                >
+                                    {getChatAvatar(chat)}
+                                </div>
+                                {isOnline(chat) && <div className={styles.onlineBadge} />}
+                            </div>
+
+                            <div className={styles.chatContent}>
+                                <div className={styles.topRow}>
+                                    <span className={styles.name}>{getChatName(chat)}</span>
+                                    <span className={styles.time} suppressHydrationWarning>
+                                        {formatTime(getLastTime(chat))}
+                                    </span>
+                                </div>
+
+                                <div className={styles.bottomRow}>
+                                    <span className={styles.lastMessage}>{getLastMessage(chat)}</span>
+                                    {unread > 0 && (
+                                        <div className={styles.unreadBadge}>{unread}</div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

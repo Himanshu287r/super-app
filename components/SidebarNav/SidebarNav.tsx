@@ -1,24 +1,41 @@
 "use client";
 
-import { MessageSquare, Phone, Compass, Clapperboard, Grid, Settings } from 'lucide-react';
+import { MessageSquare, Phone, Compass, Grid, Settings, LogOut } from 'lucide-react';
 import styles from './SidebarNav.module.css';
 import { useRouter, usePathname } from 'next/navigation';
+import { User } from 'firebase/auth';
 
-export default function SidebarNav() {
+interface SidebarNavProps {
+    user: User;
+    onLogout: () => void;
+}
+
+export default function SidebarNav({ user, onLogout }: SidebarNavProps) {
     const router = useRouter();
     const pathname = usePathname();
 
     const isActive = (path: string) => pathname === path;
+
+    // Get user initials
+    const getInitials = () => {
+        const name = user.displayName || user.email || 'U';
+        return name.substring(0, 2).toUpperCase();
+    };
 
     return (
         <nav className={styles.sidebar}>
             <div
                 className={styles.avatar}
                 onClick={() => router.push('/profile')}
-                style={{ cursor: 'pointer' }}
+                style={{
+                    cursor: 'pointer',
+                    backgroundImage: user.photoURL ? `url(${user.photoURL})` : undefined,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                }}
                 title="Edit Profile"
             >
-                JD
+                {!user.photoURL && getInitials()}
             </div>
 
             <div
@@ -47,13 +64,6 @@ export default function SidebarNav() {
 
             <div className={styles.navItem}>
                 <div className={styles.iconWrapper}>
-                    <Clapperboard size={24} />
-                </div>
-                <span>Reels</span>
-            </div>
-
-            <div className={styles.navItem}>
-                <div className={styles.iconWrapper}>
                     <Grid size={24} />
                 </div>
                 <span>Services</span>
@@ -68,6 +78,18 @@ export default function SidebarNav() {
                     <Settings size={24} />
                 </div>
                 <span>Settings</span>
+            </div>
+
+            <div
+                className={styles.navItem}
+                onClick={onLogout}
+                style={{ cursor: 'pointer' }}
+                title="Logout"
+            >
+                <div className={styles.iconWrapper}>
+                    <LogOut size={24} />
+                </div>
+                <span>Logout</span>
             </div>
         </nav>
     );

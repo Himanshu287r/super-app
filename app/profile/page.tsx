@@ -4,25 +4,59 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import styles from './profile.module.css';
+import { useAuth } from '@/context/AuthContext';
+import { updateUserProfile, getUser } from '@/lib/services/userService';
+import { updateProfile } from 'firebase/auth';
 
 export default function ProfilePage() {
     const router = useRouter();
+    const { user } = useAuth();
     const [name, setName] = useState('');
     const [about, setAbout] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [saved, setSaved] = useState(false);
 
     useEffect(() => {
-        // Load from local storage or mock defaults
-        const savedName = localStorage.getItem('userName') || 'John Doe';
-        const savedAbout = localStorage.getItem('userAbout') || 'Hey there! I am using Chat App.';
-        setName(savedName);
-        setAbout(savedAbout);
-    }, []);
+        if (!user) {
+            router.push('/login');
+            return;
+        }
 
-    const handleSave = () => {
-        localStorage.setItem('userName', name);
-        localStorage.setItem('userAbout', about);
-        alert('Profile saved!');
+        // Load from Firestore
+        const loadProfile = async () => {
+            const profile = await getUser(user.uid);
+            if (profile) {
+                setName(profile.displayName || '');
+                setAbout(profile.about || '');
+            } else {
+                setName(user.displayName || '');
+            }
+        };
+
+        loadProfile();
+    }, [user, router]);
+
+    const handleSave = async () => {
+        if (!user) return;
+        setSaving(true);
+        try {
+            // Update Firestore profile
+            await updateUserProfile(user.uid, {
+                displayName: name,
+                about,
+            });
+            // Update Firebase Auth profile
+            await updateProfile(user, { displayName: name });
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2000);
+        } catch (err) {
+            console.error('Failed to save profile:', err);
+            alert('Failed to save profile. Please try again.');
+        }
+        setSaving(false);
     };
+
+    if (!user) return null;
 
     return (
         <div className={styles.container}>
@@ -35,12 +69,19 @@ export default function ProfilePage() {
 
             <div className={styles.content}>
                 <div className={styles.avatarSection}>
-                    <div className={styles.avatar}>
-                        {name.charAt(0).toUpperCase()}
+                    <div
+                        className={styles.avatar}
+                        style={{
+                            backgroundImage: user.photoURL ? `url(${user.photoURL})` : undefined,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                        }}
+                    >
+                        {!user.photoURL && name.charAt(0).toUpperCase()}
                     </div>
-                    <button style={{ color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                        Change Profile Photo
-                    </button>
+                    <p style={{ color: 'var(--muted-foreground)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+                        {user.email || user.phoneNumber || ''}
+                    </p>
                 </div>
 
                 <div className={styles.formGroup}>
@@ -62,8 +103,13 @@ export default function ProfilePage() {
                     />
                 </div>
 
-                <button className={styles.saveButton} onClick={handleSave}>
-                    Save Changes
+                <button
+                    className={styles.saveButton}
+                    onClick={handleSave}
+                    disabled={saving}
+                    style={{ opacity: saving ? 0.7 : 1 }}
+                >
+                    {saving ? 'Saving...' : saved ? '✓ Saved!' : 'Save Changes'}
                 </button>
             </div>
         </div>

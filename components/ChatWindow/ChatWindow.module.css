@@ -117,3 +117,15 @@
 .own .messageTime {
     text-align: right;
 }
+
+.senderName {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 0.15rem;
+}
+
+.savedAvatar {
+    background-color: #3b82f6;
+    color: white;
+}

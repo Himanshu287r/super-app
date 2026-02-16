@@ -1,0 +1,163 @@
+import {
+    doc,
+    setDoc,
+    getDoc,
+    getDocs,
+    collection,
+    query,
+    where,
+    serverTimestamp,
+    updateDoc,
+    onSnapshot,
+    Unsubscribe,
+} from 'firebase/firestore';
+import { User as FirebaseUser } from 'firebase/auth';
+import { db } from '@/lib/firebase';
+
+export interface UserProfile {
+    uid: string;
+    email: string | null;
+    displayName: string;
+    photoURL: string | null;
+    phoneNumber: string | null;
+    isOnline: boolean;
+    lastSeen: Date | null;
+    about: string;
+    createdAt: Date;
+}
+
+// Create or update user document in Firestore when they sign in
+export async function createOrUpdateUser(firebaseUser: FirebaseUser): Promise<void> {
+    const userRef = doc(db, 'users', firebaseUser.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+        // New user — create profile
+        await setDoc(userRef, {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+            photoURL: firebaseUser.photoURL,
+            phoneNumber: firebaseUser.phoneNumber,
+            isOnline: true,
+            lastSeen: serverTimestamp(),
+            about: 'Hey there! I am using Chat App.',
+            createdAt: serverTimestamp(),
+        });
+    } else {
+        // Existing user — update online status
+        await updateDoc(userRef, {
+            isOnline: true,
+            lastSeen: serverTimestamp(),
+            // Update display name / photo if changed from auth provider
+            ...(firebaseUser.displayName && { displayName: firebaseUser.displayName }),
+            ...(firebaseUser.photoURL && { photoURL: firebaseUser.photoURL }),
+        });
+    }
+}
+
+// Get a single user by ID
+export async function getUser(userId: string): Promise<UserProfile | null> {
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) return null;
+
+    const data = userSnap.data();
+    return {
+        uid: data.uid,
+        email: data.email,
+        displayName: data.displayName,
+        photoURL: data.photoURL,
+        phoneNumber: data.phoneNumber,
+        isOnline: data.isOnline,
+        lastSeen: data.lastSeen?.toDate?.() || null,
+        about: data.about || '',
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+    } as UserProfile;
+}
+
+// Search users by email (exact match)
+export async function searchUserByEmail(email: string): Promise<UserProfile | null> {
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('email', '==', email.toLowerCase().trim()));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) return null;
+
+    const data = snapshot.docs[0].data();
+    return {
+        uid: data.uid,
+        email: data.email,
+        displayName: data.displayName,
+        photoURL: data.photoURL,
+        phoneNumber: data.phoneNumber,
+        isOnline: data.isOnline,
+        lastSeen: data.lastSeen?.toDate?.() || null,
+        about: data.about || '',
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+    } as UserProfile;
+}
+
+// Update user's online status
+export async function setOnlineStatus(userId: string, isOnline: boolean): Promise<void> {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+        isOnline,
+        lastSeen: serverTimestamp(),
+    });
+}
+
+// Update user profile
+export async function updateUserProfile(
+    userId: string,
+    updates: { displayName?: string; about?: string; photoURL?: string }
+): Promise<void> {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, updates);
+}
+
+// Subscribe to multiple users' presence (for chat list)
+export function subscribeToUsers(
+    userIds: string[],
+    callback: (users: Map<string, UserProfile>) => void
+): Unsubscribe {
+    if (userIds.length === 0) {
+        callback(new Map());
+        return () => { };
+    }
+
+    // Firestore 'in' queries are limited to 30 elements
+    const batches = [];
+    for (let i = 0; i < userIds.length; i += 30) {
+        batches.push(userIds.slice(i, i + 30));
+    }
+
+    const usersMap = new Map<string, UserProfile>();
+    const unsubscribes: Unsubscribe[] = [];
+
+    for (const batch of batches) {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('uid', 'in', batch));
+        const unsub = onSnapshot(q, (snapshot) => {
+            snapshot.docs.forEach((docSnap) => {
+                const data = docSnap.data();
+                usersMap.set(data.uid, {
+                    uid: data.uid,
+                    email: data.email,
+                    displayName: data.displayName,
+                    photoURL: data.photoURL,
+                    phoneNumber: data.phoneNumber,
+                    isOnline: data.isOnline,
+                    lastSeen: data.lastSeen?.toDate?.() || null,
+                    about: data.about || '',
+                    createdAt: data.createdAt?.toDate?.() || new Date(),
+                });
+            });
+            callback(new Map(usersMap));
+        });
+        unsubscribes.push(unsub);
+    }
+
+    return () => unsubscribes.forEach((u) => u());
+}

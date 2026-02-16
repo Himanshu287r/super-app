@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import {
     User,
     onAuthStateChanged,
+    signInWithPopup,
     signInWithRedirect,
     getRedirectResult,
     signInWithEmailAndPassword,
@@ -15,6 +16,7 @@ import {
     ConfirmationResult,
     PhoneAuthProvider,
     signInWithCredential,
+    AuthError,
 } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import { createOrUpdateUser } from '@/lib/services/userService';
@@ -40,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [error, setError] = useState<string | null>(null);
     const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
-    // Handle redirect result from Google sign-in
+    // Handle redirect result (fallback for when popup is blocked)
     useEffect(() => {
         getRedirectResult(auth)
             .then(async (result) => {
@@ -49,10 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
             })
             .catch((err) => {
-                const message = err instanceof Error ? err.message : 'Failed to sign in with Google';
-                if (!message.includes('null')) {
-                    setError(message);
-                }
+                console.error('Redirect result error:', err);
             });
     }, []);
 
@@ -78,10 +77,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             setError(null);
             setLoading(true);
-            await signInWithRedirect(auth, googleProvider);
+            // Try popup first (most reliable in modern browsers)
+            await signInWithPopup(auth, googleProvider);
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : 'Failed to sign in with Google';
-            setError(message);
+            const authError = err as AuthError;
+            console.error('Google sign-in error:', authError.code, authError.message);
+
+            // If popup was blocked or closed, fall back to redirect
+            if (
+                authError.code === 'auth/popup-blocked' ||
+                authError.code === 'auth/popup-closed-by-user' ||
+                authError.code === 'auth/cancelled-popup-request'
+            ) {
+                try {
+                    await signInWithRedirect(auth, googleProvider);
+                    return; // redirect will navigate away
+                } catch (redirectErr: unknown) {
+                    const message = redirectErr instanceof Error ? redirectErr.message : 'Failed to sign in with Google';
+                    setError(message);
+                }
+            } else if (authError.code === 'auth/unauthorized-domain') {
+                setError('This domain is not authorized for Google sign-in. Please contact the app admin.');
+            } else {
+                const message = err instanceof Error ? err.message : 'Failed to sign in with Google';
+                setError(message);
+            }
             setLoading(false);
         }
     }, []);

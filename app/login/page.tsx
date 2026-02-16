@@ -102,6 +102,8 @@ export default function LoginPage() {
                         <h1 className={styles.title}>Welcome</h1>
                         <p className={styles.subtitle}>Sign in to continue to your chats</p>
 
+                        {error && <div className={styles.errorMessage}>{error}</div>}
+
                         <div className={styles.buttonGroup}>
                             <button
                                 className={styles.button}

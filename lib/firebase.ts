@@ -6,6 +6,7 @@ import {
     persistentLocalCache,
     persistentMultipleTabManager,
 } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 // Firebase project config
 const firebaseConfig = {
@@ -39,4 +40,8 @@ try {
 }
 
 export { db };
+
+// Initialize Storage
+export const storage = getStorage(app);
+
 export default app;

@@ -165,7 +165,7 @@ export default function ChatList({
 
             <div className={styles.searchContainer}>
                 <div className={styles.searchInputWrapper}>
-                    <Search size={18} color="#9ca3af" />
+                    <Search size={18} className={styles.searchIcon} />
                     <input
                         type="text"
                         placeholder="Search chats"

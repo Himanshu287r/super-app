@@ -1,0 +1,164 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.95);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.remoteVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background-color: #000;
+}
+
+.localVideo {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 150px;
+    height: 200px;
+    border-radius: 12px;
+    object-fit: cover;
+    background-color: #000;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    z-index: 10;
+}
+
+.infoOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    z-index: 20;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent);
+}
+
+.avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.avatarImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatarInitials {
+    font-size: 3rem;
+    font-weight: 600;
+    color: white;
+}
+
+.name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: white;
+    margin: 0 0 0.5rem 0;
+    text-align: center;
+}
+
+.status {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+    text-align: center;
+}
+
+.duration {
+    font-size: 1.25rem;
+    color: white;
+    margin: 0.5rem 0;
+    font-weight: 500;
+}
+
+.connectionState {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+    text-transform: capitalize;
+}
+
+.controls {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    z-index: 30;
+}
+
+.controlButton {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: white;
+}
+
+.answerButton {
+    background-color: #10b981;
+}
+
+.answerButton:hover {
+    background-color: #059669;
+    transform: scale(1.1);
+}
+
+.rejectButton,
+.endButton {
+    background-color: #ef4444;
+}
+
+.rejectButton:hover,
+.endButton:hover {
+    background-color: #dc2626;
+    transform: scale(1.1);
+}
+
+.activeButton {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.activeButton:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.controlButton:active {
+    transform: scale(0.95);
+}

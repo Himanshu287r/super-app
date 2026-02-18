@@ -1,0 +1,195 @@
+.mapContainer {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: calc(100vh - 80px);
+}
+
+.map {
+    width: 100%;
+    height: 100%;
+    min-height: calc(100vh - 80px);
+    z-index: 1;
+}
+
+/* Pure black cursor for map navigation */
+.map :global(.leaflet-container) {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="4" fill="black"/><path d="M24 2 L24 12 M24 36 L24 46 M2 24 L12 24 M36 24 L46 24" stroke="black" stroke-width="5" stroke-linecap="round"/></svg>') 24 24, crosshair !important;
+}
+
+/* Pure black grab cursor (open hand) */
+.map :global(.leaflet-container.leaflet-grab) {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><path d="M18 12 C14 12 10 16 10 20 L10 28 C10 32 14 36 18 36 L22 36 L22 32 L18 32 C16 32 14 30 14 28 L14 20 C14 18 16 16 18 16 L30 16 C32 16 34 18 34 20 L34 28 C34 30 32 32 30 32 L26 32 L26 36 L30 36 C34 36 38 32 38 28 L38 20 C38 16 34 12 30 12 Z" fill="black"/><circle cx="18" cy="22" r="2.5" fill="black"/><circle cx="24" cy="22" r="2.5" fill="black"/><circle cx="30" cy="22" r="2.5" fill="black"/></svg>') 24 24, grab !important;
+}
+
+/* Pure black grabbing cursor (closed hand) */
+.map :global(.leaflet-container.leaflet-grabbing) {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><path d="M18 12 C14 12 10 16 10 20 L10 28 C10 32 14 36 18 36 L22 36 L22 32 L18 32 C16 32 14 30 14 28 L14 20 C14 18 16 16 18 16 L30 16 C32 16 34 18 34 20 L34 28 C34 30 32 32 30 32 L26 32 L26 36 L30 36 C34 36 38 32 38 28 L38 20 C38 16 34 12 30 12 Z" fill="black"/><rect x="16" y="20" width="4" height="4" fill="black"/><rect x="22" y="20" width="4" height="4" fill="black"/><rect x="28" y="20" width="4" height="4" fill="black"/></svg>') 24 24, grabbing !important;
+}
+
+.loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    z-index: 1000;
+    background-color: var(--background);
+    padding: 2rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--primary, #3b82f6);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.errorBanner {
+    position: absolute;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #fee2e2;
+    color: #991b1b;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    max-width: 90%;
+    text-align: center;
+}
+
+[data-theme='dark'] .errorBanner {
+    background-color: #7f1d1d;
+    color: #fecaca;
+}
+
+.legend {
+    position: absolute;
+    bottom: 1rem;
+    left: 1rem;
+    background-color: var(--background);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 150px;
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--foreground);
+}
+
+.userMarker {
+    background: transparent;
+    border: none;
+}
+
+.userMarkerDot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #3b82f6;
+    border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+.onlineMarker {
+    background: transparent;
+    border: none;
+}
+
+.onlineMarkerDot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: #10b981;
+    border: 2px solid white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.onlineCount {
+    font-weight: 600;
+    color: var(--primary, #3b82f6);
+    margin-top: 0.25rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.popupContent {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 150px;
+}
+
+.popupAvatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    align-self: center;
+}
+
+.popupContent strong {
+    font-size: 0.875rem;
+    color: var(--foreground);
+}
+
+.popupContent p {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .legend {
+        bottom: 0.5rem;
+        left: 0.5rem;
+        padding: 0.75rem;
+        min-width: 120px;
+    }
+
+    .legendItem {
+        font-size: 0.75rem;
+    }
+
+    .errorBanner {
+        top: 0.5rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+}

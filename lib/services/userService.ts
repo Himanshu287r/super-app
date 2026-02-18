@@ -24,6 +24,11 @@ export interface UserProfile {
     lastSeen: Date | null;
     about: string;
     createdAt: Date;
+    location?: {
+        latitude: number;
+        longitude: number;
+        updatedAt: Date;
+    };
 }
 
 // Create or update user document in Firestore when they sign in
@@ -67,6 +72,7 @@ export async function getUser(userId: string): Promise<UserProfile | null> {
     if (!userSnap.exists()) return null;
 
     const data = userSnap.data();
+    const location = data.location;
     return {
         uid: data.uid,
         email: data.email,
@@ -77,6 +83,11 @@ export async function getUser(userId: string): Promise<UserProfile | null> {
         lastSeen: data.lastSeen?.toDate?.() || null,
         about: data.about || '',
         createdAt: data.createdAt?.toDate?.() || new Date(),
+        location: location ? {
+            latitude: location.latitude,
+            longitude: location.longitude,
+            updatedAt: location.updatedAt?.toDate?.() || new Date(),
+        } : undefined,
     } as UserProfile;
 }
 
@@ -104,6 +115,7 @@ export async function searchUserByEmail(email: string): Promise<UserProfile | nu
     if (snapshot.empty) return null;
 
     const data = snapshot.docs[0].data();
+    const location = data.location;
     return {
         uid: data.uid,
         email: data.email,
@@ -114,6 +126,11 @@ export async function searchUserByEmail(email: string): Promise<UserProfile | nu
         lastSeen: data.lastSeen?.toDate?.() || null,
         about: data.about || '',
         createdAt: data.createdAt?.toDate?.() || new Date(),
+        location: location ? {
+            latitude: location.latitude,
+            longitude: location.longitude,
+            updatedAt: location.updatedAt?.toDate?.() || new Date(),
+        } : undefined,
     } as UserProfile;
 }
 
@@ -133,6 +150,55 @@ export async function updateUserProfile(
 ): Promise<void> {
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, updates);
+}
+
+// Update user location
+export async function updateUserLocation(
+    userId: string,
+    latitude: number,
+    longitude: number
+): Promise<void> {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+        location: {
+            latitude,
+            longitude,
+            updatedAt: serverTimestamp(),
+        },
+    });
+}
+
+// Subscribe to all online users with locations
+export function subscribeToOnlineUsers(
+    callback: (users: UserProfile[]) => void
+): Unsubscribe {
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('isOnline', '==', true));
+    
+    return onSnapshot(q, (snapshot) => {
+        const users: UserProfile[] = [];
+        snapshot.docs.forEach((docSnap) => {
+            const data = docSnap.data();
+            const location = data.location;
+            users.push({
+                uid: data.uid,
+                email: data.email,
+                displayName: data.displayName,
+                photoURL: data.photoURL,
+                phoneNumber: data.phoneNumber,
+                isOnline: data.isOnline,
+                lastSeen: data.lastSeen?.toDate?.() || null,
+                about: data.about || '',
+                createdAt: data.createdAt?.toDate?.() || new Date(),
+                location: location ? {
+                    latitude: location.latitude,
+                    longitude: location.longitude,
+                    updatedAt: location.updatedAt?.toDate?.() || new Date(),
+                } : undefined,
+            });
+        });
+        callback(users);
+    });
 }
 
 // Subscribe to multiple users' presence (for chat list)
@@ -160,6 +226,7 @@ export function subscribeToUsers(
         const unsub = onSnapshot(q, (snapshot) => {
             snapshot.docs.forEach((docSnap) => {
                 const data = docSnap.data();
+                const location = data.location;
                 usersMap.set(data.uid, {
                     uid: data.uid,
                     email: data.email,
@@ -170,6 +237,11 @@ export function subscribeToUsers(
                     lastSeen: data.lastSeen?.toDate?.() || null,
                     about: data.about || '',
                     createdAt: data.createdAt?.toDate?.() || new Date(),
+                    location: location ? {
+                        latitude: location.latitude,
+                        longitude: location.longitude,
+                        updatedAt: location.updatedAt?.toDate?.() || new Date(),
+                    } : undefined,
                 });
             });
             callback(new Map(usersMap));

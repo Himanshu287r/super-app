@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import SidebarNav from "@/components/SidebarNav/SidebarNav";
 import ChatList from "@/components/ChatList/ChatList";
@@ -17,6 +17,7 @@ import { setOnlineStatus } from '@/lib/services/userService';
 
 export default function Home() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading, logout } = useAuth();
 
   const [chats, setChats] = useState<ChatDoc[]>([]);
@@ -61,6 +62,20 @@ export default function Home() {
     return () => unsubscribe();
   }, [user]);
 
+  // Handle chatId from URL params (e.g., when returning from profile)
+  useEffect(() => {
+    const chatIdFromUrl = searchParams.get('chatId');
+    if (chatIdFromUrl && chats.length > 0) {
+      // Verify the chat exists before setting it
+      const chatExists = chats.some(chat => chat.id === chatIdFromUrl);
+      if (chatExists) {
+        setSelectedChatId(chatIdFromUrl);
+        // Clean up URL by removing the query parameter
+        router.replace('/');
+      }
+    }
+  }, [searchParams, chats, router]);
+
   // Subscribe to all participant users for real-time presence
   useEffect(() => {
     if (!user || chats.length === 0) return;
@@ -84,10 +99,10 @@ export default function Home() {
     return () => unsubscribe();
   }, [user, chats]);
 
-  const handleCreateGroup = async (name: string, participantIds: string[]) => {
+  const handleCreateGroup = async (name: string, participantIds: string[], groupInfo?: string | null) => {
     if (!user) return;
     try {
-      const chatId = await createGroupChat(name, participantIds, user.uid);
+      const chatId = await createGroupChat(name, participantIds, user.uid, groupInfo);
       setSelectedChatId(chatId);
       setShowCreateGroup(false);
     } catch (err) {

@@ -18,6 +18,7 @@ export interface ChatDoc {
     participants: string[]; // Array of user UIDs
     isGroup: boolean;
     groupName: string | null;
+    groupInfo: string | null; // Optional group description/info
     createdAt: Date;
     lastMessage: {
         text: string;
@@ -77,7 +78,8 @@ export async function findDirectChat(
 export async function createGroupChat(
     name: string,
     participantIds: string[],
-    creatorId: string
+    creatorId: string,
+    groupInfo?: string | null
 ): Promise<string> {
     const chatRef = doc(collection(db, 'chats'));
 
@@ -91,6 +93,7 @@ export async function createGroupChat(
         participants: allParticipants,
         isGroup: true,
         groupName: name,
+        groupInfo: groupInfo || null,
         createdAt: serverTimestamp(),
         lastMessage: null,
         unreadCount,
@@ -121,6 +124,7 @@ export function subscribeToUserChats(
                 participants: data.participants,
                 isGroup: data.isGroup,
                 groupName: data.groupName,
+                groupInfo: data.groupInfo || null,
                 createdAt: data.createdAt?.toDate?.() || new Date(),
                 lastMessage: data.lastMessage
                     ? {

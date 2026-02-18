@@ -7,13 +7,14 @@ import { useState } from 'react';
 interface CreateGroupModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onCreate: (name: string, participants: string[]) => void;
+    onCreate: (name: string, participants: string[], groupInfo?: string | null) => void;
     currentUserId: string;
     usersMap: Map<string, UserProfile>;
 }
 
 export default function CreateGroupModal({ isOpen, onClose, onCreate, currentUserId, usersMap }: CreateGroupModalProps) {
     const [groupName, setGroupName] = useState('');
+    const [groupInfo, setGroupInfo] = useState('');
     const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
     // Get available users (all users in usersMap except current user)
@@ -28,13 +29,15 @@ export default function CreateGroupModal({ isOpen, onClose, onCreate, currentUse
     };
 
     const handleCreate = () => {
-        onCreate(groupName, selectedUsers);
+        onCreate(groupName, selectedUsers, groupInfo.trim() || null);
         setGroupName('');
+        setGroupInfo('');
         setSelectedUsers([]);
     };
 
     const handleClose = () => {
         setGroupName('');
+        setGroupInfo('');
         setSelectedUsers([]);
         onClose();
     };
@@ -51,6 +54,28 @@ export default function CreateGroupModal({ isOpen, onClose, onCreate, currentUse
                         style={{ padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', outline: 'none', background: 'var(--background)', color: 'var(--foreground)' }}
                         value={groupName}
                         onChange={(e) => setGroupName(e.target.value)}
+                    />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+                        About <span style={{ fontWeight: 400, color: 'var(--muted-foreground)', fontSize: '0.85rem' }}>(Optional)</span>
+                    </label>
+                    <textarea
+                        placeholder="Add a description about this group..."
+                        rows={3}
+                        style={{ 
+                            padding: '0.75rem', 
+                            borderRadius: '6px', 
+                            border: '1px solid var(--border-color)', 
+                            outline: 'none', 
+                            background: 'var(--background)', 
+                            color: 'var(--foreground)',
+                            resize: 'vertical',
+                            fontFamily: 'inherit'
+                        }}
+                        value={groupInfo}
+                        onChange={(e) => setGroupInfo(e.target.value)}
                     />
                 </div>
 

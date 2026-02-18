@@ -62,7 +62,10 @@ export default function SidebarNav({ user, onLogout }: SidebarNavProps) {
                 <span>Discover</span>
             </div>
 
-            <div className={styles.navItem}>
+            <div
+                className={`${styles.navItem} ${isActive('/services') ? styles.active : ''}`}
+                onClick={() => router.push('/services')}
+            >
                 <div className={styles.iconWrapper}>
                     <Grid size={24} />
                 </div>

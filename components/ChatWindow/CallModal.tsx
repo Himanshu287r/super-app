@@ -177,7 +177,7 @@ export default function CallModal({
 
     const toggleMute = () => {
         if (webrtcRef.current) {
-            const stream = webrtcRef.current.getLocalStream();
+            const stream = webrtcRef.current.getCurrentLocalStream();
             if (stream) {
                 stream.getAudioTracks().forEach((track) => {
                     track.enabled = isMuted;
@@ -189,7 +189,7 @@ export default function CallModal({
 
     const toggleVideo = () => {
         if (webrtcRef.current && callType === 'video') {
-            const stream = webrtcRef.current.getLocalStream();
+            const stream = webrtcRef.current.getCurrentLocalStream();
             if (stream) {
                 stream.getVideoTracks().forEach((track) => {
                     track.enabled = isVideoOff;

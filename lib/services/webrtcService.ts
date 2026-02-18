@@ -147,8 +147,8 @@ export class WebRTCService {
         return this.remoteStream;
     }
 
-    // Get local stream
-    getLocalStream(): MediaStream | null {
+    // Get the currently active local stream (if any)
+    getCurrentLocalStream(): MediaStream | null {
         return this.localStream;
     }
 

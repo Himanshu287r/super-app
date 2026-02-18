@@ -27,13 +27,6 @@ export default function HomeClient() {
   const [showAddContact, setShowAddContact] = useState(false);
   const [usersMap, setUsersMap] = useState<Map<string, UserProfile>>(new Map());
 
-  // Redirect unauthenticated users to login
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [loading, user, router]);
-
   // Set online status and handle browser close
   useEffect(() => {
     if (!user) return;
@@ -184,8 +177,74 @@ export default function HomeClient() {
   }
 
   if (!user) {
-    // While redirecting, render nothing (Suspense fallback from app/page.tsx will show if needed)
-    return null;
+    return (
+      <div
+        style={{
+          height: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--background)',
+          color: 'var(--foreground)',
+          padding: '2rem',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: '480px',
+            width: '100%',
+            backgroundColor: 'rgba(15,23,42,0.9)',
+            borderRadius: '1.25rem',
+            padding: '2rem 2.25rem',
+            boxShadow:
+              '0 20px 45px rgba(15,23,42,0.7), 0 0 0 1px rgba(148,163,184,0.2)',
+            border: '1px solid rgba(148,163,184,0.35)',
+          }}
+        >
+          <h1
+            style={{
+              fontSize: '1.6rem',
+              lineHeight: 1.2,
+              fontWeight: 600,
+              marginBottom: '0.6rem',
+            }}
+          >
+            Super App
+          </h1>
+          <p
+            style={{
+              fontSize: '0.95rem',
+              lineHeight: 1.6,
+              color: 'var(--muted-foreground)',
+              marginBottom: '1.5rem',
+            }}
+          >
+            Sign in to start chatting and calling your contacts.
+          </p>
+
+          <button
+            onClick={() => router.push('/login')}
+            style={{
+              width: '100%',
+              padding: '0.85rem 1.25rem',
+              borderRadius: '999px',
+              border: 'none',
+              outline: 'none',
+              cursor: 'pointer',
+              background:
+                'linear-gradient(135deg, #4f46e5, #0ea5e9)',
+              color: 'white',
+              fontWeight: 600,
+              fontSize: '0.95rem',
+              boxShadow:
+                '0 16px 35px rgba(15,23,42,0.9), 0 0 0 1px rgba(191,219,254,0.3)',
+            }}
+          >
+            Continue to login
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const selectedChat = chats.find(c => c.id === selectedChatId);
